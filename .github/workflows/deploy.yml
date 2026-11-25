@@ -1,0 +1,30 @@
+name: Deploy CI/CD DermaPura na EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Build Docker e Deploy na AWS EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Implantar via SSH e Docker na EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/app
+            git pull origin main
+            sudo docker build -t dermapura-web .
+            sudo docker stop site-dermapura || true
+            sudo docker rm site-dermapura || true
+            sudo docker run -d -p 80:80 --name site-dermapura dermapura-web
+            sudo docker image prune -f
